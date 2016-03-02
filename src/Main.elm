@@ -10,18 +10,15 @@ import String as String
 size = 100
 scale = 3
 
-type alias Model = List (List Bool)
+type alias Model = List (Int, Int, Bool)
 
 -- update
 
-updateCell : Bool -> Bool
-updateCell value = not value
-
-updateRow : (List Bool) -> (List Bool)
-updateRow row = List.map updateCell row
+updateCell : (Int, Int, Bool) -> (Int, Int, Bool)
+updateCell (x, y, bool) = (x, y, not bool)
 
 update : Time -> Model -> Model
-update time model = List.map updateRow model
+update time model = List.map updateCell model
 
 -- view
 
@@ -31,42 +28,34 @@ convertCoordinates absoluteX absoluteY =
       y = (toFloat (size * scale) / 2) - (toFloat (absoluteY * scale))
   in (x, y)
 
-cell : (Int, Int, Bool) -> Collage.Form
-cell (x, y, bool) =
+viewCell : (Int, Int, Bool) -> Collage.Form
+viewCell (x, y, bool) =
   let cellColor = if bool then black else white
       cellShape = Collage.square scale
         |> Collage.filled cellColor
         |> Collage.move (convertCoordinates x y)
   in cellShape
 
-row : (Int, List Bool) -> List Collage.Form
-row (y, bools) =
-  let ys = List.repeat size y
-      xs = [1..size]
-      create3List = \a b c -> (a, b, c)
-      cellBools = List.map3 create3List xs ys bools
-      cellBoolsOn = List.filter (\(x, y, bool) -> bool) cellBools
-  in List.map cell cellBoolsOn
-
-rows : List (List Bool) -> Html
-rows lists =
-  let ys = [1..size]
-      rowLists = List.map2 (,) ys lists
-      mappedLists = List.concatMap row rowLists
-      offsetScale = scale * (size + 1)
-  in fromElement (Collage.collage offsetScale offsetScale mappedLists)
-
 view : Model -> Html
-view model = div [] [ rows model ]
+view model =
+    let cellsOn = List.filter (\(x, y, bool) -> bool) model
+        formList = List.map viewCell cellsOn
+        offsetScale = scale * (size + 1)
+        element = Collage.collage offsetScale offsetScale formList
+    in div [] [ fromElement element ]
 
 -- initial model
 
-randomModelGenerator : Int -> Random.Generator (List (List Bool))
-randomModelGenerator size = Random.list size (Random.list size Random.bool)
+randomModelGenerator : Int -> Random.Generator (List Bool)
+randomModelGenerator size = Random.list (size * size) Random.bool
 
 seedModel : Int -> Model
 seedModel size =
-  let (model, seed) = Random.generate (randomModelGenerator size) (Random.initialSeed 444555)
+  let (bools, seed) = Random.generate (randomModelGenerator size) (Random.initialSeed 444555)
+      xs = List.concat (List.repeat size [1..size])
+      ys = List.concat (List.map (List.repeat size) [1..size])
+      create3List = \a b c -> (a, b, c)
+      model = List.map3 create3List xs ys bools
   in model
 
 -- runtime
