@@ -7,32 +7,35 @@ import String as String
 
 -- model
 
-size = 25
+size = 40
 scale = 3
 
 type alias Model = List (Int, Int, Bool)
 
 -- update
 
+offsets = [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)]
+
 wrap : Int -> Int -> Int
 wrap size value = if value < 1 then size + value else if value > size then value - size else value
 
 neighbors : Model -> (Int, Int) -> Int
-neighbors model (x, y) =
-  let offsets = [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)]
-      neighborCoordinates = List.map (\(offsetX, offsetY) -> (wrap size (x + offsetX), wrap size (y + offsetY))) offsets
-      filter = \(cellX, cellY, bool) -> (bool && (List.member (cellX, cellY) neighborCoordinates))
-      neighborCellsOn = List.filter filter model
+neighbors cellsOn (x, y) =
+  let neighborCoordinates = List.map (\(offsetX, offsetY) -> (wrap size (x + offsetX), wrap size (y + offsetY))) offsets
+      filter = \(cellX, cellY, _) -> (List.member (cellX, cellY) neighborCoordinates)
+      neighborCellsOn = List.filter filter cellsOn
   in List.length neighborCellsOn
 
 updateCell : Model -> (Int, Int, Bool) -> (Int, Int, Bool)
-updateCell model (x, y, bool) =
-  let count = neighbors model (x, y)
+updateCell cellsOn (x, y, bool) =
+  let count = neighbors cellsOn (x, y)
       updated = (count == 3) || (bool && (count == 2))
   in (x, y, updated)
 
 update : Time -> Model -> Model
-update time model = List.map (updateCell model) model
+update time model =
+  let cellsOn = List.filter (\(cellX, cellY, bool) -> bool) model
+  in List.map (updateCell cellsOn) model
 
 -- view
 
