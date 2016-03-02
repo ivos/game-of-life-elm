@@ -7,8 +7,8 @@ import String as String
 
 -- model
 
-size = 20
-scale = 5
+size = 100
+scale = 3
 
 type alias Model = List (List Bool)
 
@@ -27,17 +27,16 @@ update time model = List.map updateRow model
 
 convertCoordinates : Int -> Int -> (Float, Float)
 convertCoordinates absoluteX absoluteY =
-  let x = (toFloat absoluteX * toFloat scale) - (toFloat size / 2 * toFloat scale)
-      y = (toFloat size / 2 * toFloat scale) - (toFloat absoluteY * toFloat scale)
+  let x = toFloat (absoluteX * scale) - (toFloat (size * scale) / 2)
+      y = (toFloat (size * scale) / 2) - (toFloat (absoluteY * scale))
   in (x, y)
 
 cell : (Int, Int, Bool) -> Collage.Form
 cell (x, y, bool) =
   let cellColor = if bool then black else white
-      cellShape = Collage.square 1
+      cellShape = Collage.square scale
         |> Collage.filled cellColor
         |> Collage.move (convertCoordinates x y)
-        |> Collage.scale scale
   in cellShape
 
 row : (Int, List Bool) -> List Collage.Form
@@ -46,14 +45,16 @@ row (y, bools) =
       xs = [1..size]
       create3List = \a b c -> (a, b, c)
       cellBools = List.map3 create3List xs ys bools
-  in List.map cell cellBools
+      cellBoolsOn = List.filter (\(x, y, bool) -> bool) cellBools
+  in List.map cell cellBoolsOn
 
 rows : List (List Bool) -> Html
 rows lists =
   let ys = [1..size]
       rowLists = List.map2 (,) ys lists
       mappedLists = List.concatMap row rowLists
-  in fromElement (Collage.collage (scale * (size + 1)) (scale * (size + 1)) mappedLists)
+      offsetScale = scale * (size + 1)
+  in fromElement (Collage.collage offsetScale offsetScale mappedLists)
 
 view : Model -> Html
 view model = div [] [ rows model ]
@@ -71,8 +72,7 @@ seedModel size =
 -- runtime
 
 loop : Signal Model
-loop = Signal.foldp update (seedModel size) (every second)
+loop = Signal.foldp update (seedModel size) (every (500 * millisecond))
 
 main : Signal Html
 main = Signal.map view loop
-
